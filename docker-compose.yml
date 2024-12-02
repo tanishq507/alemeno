@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:adi121120@db:5432/postgres
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    networks:
+      - app_network
+
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=postgres  # Use "postgres" as the database name
+      - POSTGRES_USER=postgres  # Use "postgres" as the username
+      - POSTGRES_PASSWORD=adi121120  # Use the correct password
+    ports:
+      - "5433:5432"  # Expose PostgreSQL externally on port 5433
+    networks:
+      - app_network
+
+  redis:
+    image: redis:7
+    networks:
+      - app_network
+
+  celery:
+    build: .
+    command: celery -A credit_system worker -l INFO
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=postgresql://postgres:adi121120@db:5432/postgres
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      - web
+      - redis
+    networks:
+      - app_network
+
+volumes:
+  postgres_data:
+
+networks:
+  app_network:
